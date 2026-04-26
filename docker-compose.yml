@@ -11,6 +11,24 @@ services:
       - /usr/src/app/node_modules
     environment:
       - NODE_ENV=development
+  
+  user-service:
+    container_name: nest-user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./user-service:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=auth-db
+      - DB_PORT=5432
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - DB_NAME=auth_db
 
   auth-db:
     container_name: stromen-auth-db
