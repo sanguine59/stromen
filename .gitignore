@@ -1,0 +1,11 @@
+node_modules/
+dist/
+npm-debug.log
+
+.env
+
+.docker/
+pgdata/
+
+.DS_Store
+Thumbs.db
