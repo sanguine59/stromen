@@ -20,7 +20,25 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-
+  
+  metadata-service:
+    container-name: nest-metadata-service
+    build:
+      context: ./metadata-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./metadata-service:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - ./metadata-service/.env
+    environment:
+      NODE_ENV: development
+    depends_on:
+      metadata-db:
+        condition: service_healthy
+      
   transcode-worker:
     container_name: nest-transcode-worker
     build:
@@ -79,6 +97,24 @@ services:
       - upload_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root -d upload_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  metadata-db:
+    container_name: stromen-metadata-db
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: metadata-db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5434:5432"
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d metadata-db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -153,6 +189,8 @@ volumes:
     name: stromen_user_data
   upload_data:
     name: stromen_upload_data
+  metadata_data:
+    name: stromen_metadata_data
   minio_data:
     name: stromen_minio_data
   rabbitmq_data:
