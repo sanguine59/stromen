@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryColumn, Index, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Visibility } from "../visibility.enum copy";
+import { Visibility } from "../visibility.enum";
 import { PublishState } from "../publish-state.enum";
 
 @Entity({name : "metadata"})

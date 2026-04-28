@@ -22,7 +22,7 @@ services:
         condition: service_healthy
   
   metadata-service:
-    container-name: nest-metadata-service
+    container_name: nest-metadata-service
     build:
       context: ./metadata-service
       dockerfile: Dockerfile
@@ -110,7 +110,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - metadata_data:/var/lib/postgresql/data
     healthcheck:
