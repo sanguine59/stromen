@@ -11,9 +11,16 @@ async function bootstrap() {
       options: {
         urls: [process.env.RABBITMQ_URL ?? 'amqp://guest:guest@rabbitmq:5672'],
         queue: process.env.RABBITMQ_QUEUE ?? 'video.segmentation.queue',
-        queueOptions: { durable: true },
+        queueOptions: {
+          durable: true,
+          deadLetterExchange: '',
+          deadLetterRoutingKey:
+            process.env.RABBITMQ_DLQ ?? 'video.segmentation.dlq',
+        },
+        noAck: false,
         exchange: process.env.RABBITMQ_EXCHANGE ?? 'video.events',
         exchangeType: 'direct',
+        routingKey: process.env.RABBITMQ_ROUTING_KEY ?? 'video.uploaded',
       },
     },
   );
