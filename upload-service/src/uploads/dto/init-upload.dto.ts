@@ -4,14 +4,14 @@ export class InitUploadDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
-  filename: string;
+  filename!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  mimeType: string;
+  mimeType!: string;
 
   @IsInt()
   @IsPositive()
-  sizeBytes: number;
+  sizeBytes!: number;
 }
