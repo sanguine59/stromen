@@ -22,7 +22,7 @@ async function main(): Promise<void> {
         noAck: false,
         prefetchCount: 1,
         exchange: process.env.RABBITMQ_EXCHANGE ?? 'video.events',
-        exchangeType: 'direct',
+        exchangeType: 'topic',
         routingKey: process.env.RABBITMQ_ROUTING_KEY ?? 'video.uploaded',
       },
     },
