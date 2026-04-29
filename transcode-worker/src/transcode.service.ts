@@ -5,7 +5,13 @@ import { basename, extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pipeline } from 'node:stream/promises';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { EventPattern, RmqContext } from '@nestjs/microservices';
+import {
+  ClientProxy,
+  ClientProxyFactory,
+  EventPattern,
+  RmqContext,
+  Transport,
+} from '@nestjs/microservices';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -13,6 +19,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Pool } from 'pg';
+import { lastValueFrom } from 'rxjs';
 
 interface UploadEvent {
   uploadId: string;
@@ -31,10 +38,17 @@ interface TranscodeConfig {
   };
   minio: {
     endpoint: string;
+    publicEndpoint: string;
     accessKey: string;
     secretKey: string;
     rawBucket: string;
     streamingBucket: string;
+  };
+  rabbitmq: {
+    url: string;
+    exchange: string;
+    queue: string;
+    dlq: string;
   };
 }
 
@@ -44,6 +58,7 @@ export class TranscodeService implements OnModuleDestroy {
   private readonly config: TranscodeConfig;
   private readonly db: Pool;
   private readonly s3: S3Client;
+  private readonly publisher: ClientProxy;
 
   constructor() {
     this.config = {
@@ -56,10 +71,18 @@ export class TranscodeService implements OnModuleDestroy {
       },
       minio: {
         endpoint: process.env.MINIO_ENDPOINT ?? 'http://minio:9000',
+        publicEndpoint:
+          process.env.MINIO_PUBLIC_ENDPOINT ?? process.env.MINIO_ENDPOINT ?? 'http://minio:9000',
         accessKey: process.env.MINIO_ACCESS_KEY ?? 'minioadmin',
         secretKey: process.env.MINIO_SECRET_KEY ?? 'minioadmin',
         rawBucket: process.env.MINIO_RAW_UPLOADS_BUCKET ?? 'raw-uploads',
         streamingBucket: process.env.MINIO_STREAMING_ASSETS_BUCKET ?? 'streaming-assets',
+      },
+      rabbitmq: {
+        url: process.env.RABBITMQ_URL ?? 'amqp://guest:guest@rabbitmq:5672',
+        exchange: process.env.RABBITMQ_EXCHANGE ?? 'video.events',
+        queue: process.env.RABBITMQ_QUEUE ?? 'video.segmentation.queue',
+        dlq: process.env.RABBITMQ_DLQ ?? 'video.segmentation.dlq',
       },
     };
 
@@ -73,9 +96,25 @@ export class TranscodeService implements OnModuleDestroy {
         secretAccessKey: this.config.minio.secretKey,
       },
     });
+
+    this.publisher = ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [this.config.rabbitmq.url],
+        queue: this.config.rabbitmq.queue,
+        queueOptions: {
+          durable: true,
+          deadLetterExchange: '',
+          deadLetterRoutingKey: this.config.rabbitmq.dlq,
+        },
+        exchange: this.config.rabbitmq.exchange,
+        exchangeType: 'topic',
+      },
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.publisher.close();
     await this.db.end();
   }
 
@@ -237,11 +276,59 @@ export class TranscodeService implements OnModuleDestroy {
       );
 
       await this.setStatus(event.uploadId, 'READY', playlistKey);
+
+      await this.publishVideoReady(event.uploadId, playlistKey);
     } catch (error) {
       await this.setStatus(event.uploadId, 'FAILED');
+
+      await this.publishVideoFailed(event.uploadId, error);
       throw error;
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
+  }
+
+  private async publishVideoReady(uploadId: string, playlistKey: string): Promise<void> {
+    const hlsStreamUrl = this.buildStreamingUrl(playlistKey);
+
+    try {
+      await lastValueFrom(
+        this.publisher.emit('video.ready', {
+          uploadId,
+          hlsStreamUrl,
+          thumbnailUrl: null,
+          durationSeconds: null,
+          occurredAt: new Date().toISOString(),
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed publishing video.ready for ${uploadId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  private async publishVideoFailed(uploadId: string, error: unknown): Promise<void> {
+    const reason = error instanceof Error ? error.message : 'Transcode failed';
+
+    try {
+      await lastValueFrom(
+        this.publisher.emit('video.failed', {
+          uploadId,
+          reason,
+          occurredAt: new Date().toISOString(),
+        }),
+      );
+    } catch (publishError) {
+      this.logger.error(
+        `Failed publishing video.failed for ${uploadId}`,
+        publishError instanceof Error ? publishError.stack : undefined,
+      );
+    }
+  }
+
+  private buildStreamingUrl(playlistKey: string): string {
+    return `${this.config.minio.publicEndpoint}/${this.config.minio.streamingBucket}/${playlistKey}`;
   }
 }
