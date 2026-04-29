@@ -12,19 +12,19 @@ import { VideoStatus } from '../video-status.enum';
 @Index('idx_video_uploads_user_id', ['userId'])
 export class VideoUpload {
   @PrimaryColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ name: 'user_id', type: 'varchar', length: 255 })
-  userId: string;
+  userId!: string;
 
   @Column({ name: 'original_filename', type: 'varchar', length: 500 })
-  originalFilename: string;
+  originalFilename!: string;
 
   @Column({ name: 'raw_video_key', type: 'varchar', length: 1000 })
-  rawVideoKey: string;
+  rawVideoKey!: string;
 
   @Column({ name: 'hls_playlist_key', type: 'varchar', length: 1000, nullable: true })
-  hlsPlaylistKey: string | null;
+  hlsPlaylistKey!: string | null;
 
   @Column({
     name: 'status',
@@ -33,11 +33,11 @@ export class VideoUpload {
     enumName: 'video_upload_status',
     default: VideoStatus.PENDING,
   })
-  status: VideoStatus;
+  status!: VideoStatus;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
