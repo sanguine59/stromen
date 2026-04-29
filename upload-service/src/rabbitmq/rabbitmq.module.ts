@@ -21,7 +21,7 @@ import { RabbitMqService } from './rabbitmq.service';
               deadLetterRoutingKey: configService.getOrThrow<string>('rabbitmq.dlq'),
             },
             exchange: configService.getOrThrow<string>('rabbitmq.exchange'),
-            exchangeType: 'direct',
+            exchangeType: 'topic',
             routingKey: configService.getOrThrow<string>('rabbitmq.routingKey'),
           },
         }),

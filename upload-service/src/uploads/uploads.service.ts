@@ -40,6 +40,11 @@ export class UploadsService {
 
     await this.videoUploadsRepository.save(upload);
 
+    await this.rabbitMqService.publishUploadInitiated({
+      uploadId,
+      ownerId: userId,
+    });
+
     const presignedUrl = await this.minioService.generatePresignedUploadUrl(
       objectKey,
       payload.mimeType,

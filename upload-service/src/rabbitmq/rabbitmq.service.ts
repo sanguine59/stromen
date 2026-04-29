@@ -37,7 +37,19 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     objectKey: string;
   }): Promise<void> {
     await lastValueFrom(
-      this.client.emit(this.config.routingKey, {
+      this.client.emit('video.uploaded', {
+        ...payload,
+        occurredAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  async publishUploadInitiated(payload: {
+    uploadId: string;
+    ownerId: string;
+  }): Promise<void> {
+    await lastValueFrom(
+      this.client.emit('video.upload.initiated', {
         ...payload,
         occurredAt: new Date().toISOString(),
       }),
