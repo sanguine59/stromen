@@ -9,26 +9,53 @@ services:
     volumes:
       - ./upload-service:/usr/src/app
       - /usr/src/app/node_modules
+    env_file:
+      - ./upload-service/.env
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+    depends_on:
+      upload-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
   
-  user-service:
-    container_name: nest-user-service
+  metadata-service:
+    container_name: nest-metadata-service
     build:
-      context: ./user-service
+      context: ./metadata-service
       dockerfile: Dockerfile
     ports:
       - "3002:3000"
     volumes:
-      - ./user-service:/usr/src/app
+      - ./metadata-service:/usr/src/app
       - /usr/src/app/node_modules
+    env_file:
+      - ./metadata-service/.env
     environment:
-      - NODE_ENV=development
-      - DB_HOST=auth-db
-      - DB_PORT=5432
-      - DB_USERNAME=root
-      - DB_PASSWORD=root
-      - DB_NAME=auth_db
+      NODE_ENV: development
+    depends_on:
+      metadata-db:
+        condition: service_healthy
+      
+  transcode-worker:
+    container_name: nest-transcode-worker
+    build:
+      context: ./transcode-worker
+      dockerfile: Dockerfile
+    env_file:
+      - ./transcode-worker/.env
+    volumes:
+      - ./transcode-worker:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      upload-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   auth-db:
     container_name: stromen-auth-db
@@ -56,6 +83,89 @@ services:
     volumes:
       - user_data:/var/lib/postgresql/data
 
+  upload-db:
+    container_name: stromen-upload-db
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: upload_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5434:5432"
+    volumes:
+      - upload_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d upload_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  metadata-db:
+    container_name: stromen-metadata-db
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: metadata-db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5435:5432"
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d metadata-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    container_name: stromen-minio
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: always
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    container_name: stromen-minio-init
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./scripts/minio/init-buckets.sh:/init-buckets.sh:ro
+    entrypoint: ["/bin/sh", "/init-buckets.sh"]
+
+  rabbitmq:
+    container_name: stromen-rabbitmq
+    image: rabbitmq:3-management-alpine
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   pgadmin:
     container_name: stromen-pgadmin
     image: dpage/pgadmin4
@@ -68,6 +178,7 @@ services:
     depends_on:
       - auth-db
       - user-db
+      - upload-db
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
@@ -76,5 +187,13 @@ volumes:
     name: stromen_auth_data
   user_data:
     name: stromen_user_data
+  upload_data:
+    name: stromen_upload_data
+  metadata_data:
+    name: stromen_metadata_data
+  minio_data:
+    name: stromen_minio_data
+  rabbitmq_data:
+    name: stromen_rabbitmq_data
   pgadmin_data:
     name: stromen_pgadmin_data

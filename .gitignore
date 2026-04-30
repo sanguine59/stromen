@@ -9,3 +9,6 @@ pgdata/
 
 .DS_Store
 Thumbs.db
+
+.plan
+docs
