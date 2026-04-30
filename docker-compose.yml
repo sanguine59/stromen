@@ -1,4 +1,18 @@
 services:
+  api-gateway:
+    container_name: stromen-api-gateway
+      build: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api-gateway:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - ./upload/.env
+    environment:
+      NODE_ENV: development
+
   upload-service:
     container_name: nest-upload-service
     build:
@@ -56,6 +70,24 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+  
+  user-service:
+    container_name: nest-user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3000"
+    env_file:
+      - ./user-service/.env
+    volumes:
+      - ./user-service:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   auth-db:
     container_name: stromen-auth-db
@@ -69,19 +101,6 @@ services:
       - "5432:5432"
     volumes:
       - auth_data:/var/lib/postgresql/data
-
-  user-db:
-    container_name: stromen-user-db
-    image: postgres:17-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: user_db
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-    ports:
-      - "5433:5432"
-    volumes:
-      - user_data:/var/lib/postgresql/data
 
   upload-db:
     container_name: stromen-upload-db
@@ -185,8 +204,6 @@ services:
 volumes:
   auth_data:
     name: stromen_auth_data
-  user_data:
-    name: stromen_user_data
   upload_data:
     name: stromen_upload_data
   metadata_data:
