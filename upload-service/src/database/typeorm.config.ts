@@ -18,5 +18,7 @@ export function buildTypeOrmOptions(configService: ConfigService): TypeOrmModule
     migrations: [CreateVideoUploads1714000000000],
     migrationsRun: true,
     synchronize: false,
+    retryAttempts: 10,
+    retryDelay: 3000,
   };
 }

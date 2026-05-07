@@ -22,6 +22,12 @@ interface VideoFailedPayload {
   occurredAt?: string;
 }
 
+interface VideoWatchedPayload {
+  uploadId: string;
+  viewerId: string;
+  occurredAt?: string;
+}
+
 @Controller()
 export class MetadataController {
   private readonly logger = new Logger(MetadataController.name);
@@ -82,6 +88,26 @@ export class MetadataController {
     } catch (error) {
       this.logger.error(
         'Failed handling video.failed event',
+        error instanceof Error ? error.stack : undefined,
+      );
+      channel.nack(message, false, false);
+    }
+  }
+
+  @EventPattern('video.watched')
+  async handleVideoWatched(
+    payload: VideoWatchedPayload,
+    context: RmqContext,
+  ): Promise<void> {
+    const channel = context.getChannelRef();
+    const message = context.getMessage();
+
+    try {
+      await this.metadataService.handleVideoWatched(payload);
+      channel.ack(message);
+    } catch (error) {
+      this.logger.error(
+        'Failed handling video.watched event',
         error instanceof Error ? error.stack : undefined,
       );
       channel.nack(message, false, false);

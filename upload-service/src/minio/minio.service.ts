@@ -15,6 +15,7 @@ export class MinioService {
     this.client = new S3Client({
       endpoint: this.config.endpoint,
       region: 'us-east-1',
+      maxAttempts: 5,
       credentials: {
         accessKeyId: this.config.accessKey,
         secretAccessKey: this.config.secretKey,

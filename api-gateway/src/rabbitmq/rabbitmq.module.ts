@@ -26,6 +26,10 @@ const getEnv = (key: string, fallback: string): string => {
             exchange: getEnv('RABBITMQ_EXCHANGE', 'video.events'),
             exchangeType: 'topic',
             routingKey: getEnv('RABBITMQ_ROUTING_KEY', 'video.*'),
+            socketOptions: {
+              heartbeatIntervalInSeconds: 30,
+              reconnectTimeInSeconds: 5,
+            },
           },
         }),
     },

@@ -17,8 +17,13 @@ async function bootstrap() {
         deadLetterExchange: '',
         deadLetterRoutingKey: config.getOrThrow<string>('rabbitmq.dlq'),
       },
+      noAck: false,
+      socketOptions: {
+        heartbeatIntervalInSeconds: 30,
+        reconnectTimeInSeconds: 5,
+      },
       exchange: config.getOrThrow<string>('rabbitmq.exchange'),
-      exchangeType: 'direct',
+      exchangeType: 'topic',
       routingKey: config.getOrThrow<string>('rabbitmq.routingKey'),
     },
   });

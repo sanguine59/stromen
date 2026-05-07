@@ -86,11 +86,17 @@ export class TranscodeService implements OnModuleDestroy {
       },
     };
 
-    this.db = new Pool(this.config.db);
+    this.db = new Pool({
+      ...this.config.db,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
     this.s3 = new S3Client({
       endpoint: this.config.minio.endpoint,
       region: 'us-east-1',
       forcePathStyle: true,
+      maxAttempts: 5,
       credentials: {
         accessKeyId: this.config.minio.accessKey,
         secretAccessKey: this.config.minio.secretKey,
@@ -109,6 +115,10 @@ export class TranscodeService implements OnModuleDestroy {
         },
         exchange: this.config.rabbitmq.exchange,
         exchangeType: 'topic',
+        socketOptions: {
+          heartbeatIntervalInSeconds: 30,
+          reconnectTimeInSeconds: 5,
+        },
       },
     });
   }

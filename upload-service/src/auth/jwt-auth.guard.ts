@@ -28,7 +28,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing bearer token');
     }
 
-    const secret = this.configService.getOrThrow<string>('auth.jwtSecret');
+    const secret = this.configService.getOrThrow<string>('JWT_SECRET');
 
     try {
       const payload = await this.jwtService.verifyAsync<JwtUserPayload>(token, {

@@ -1,7 +1,7 @@
 services:
   api-gateway:
     container_name: stromen-api-gateway
-    build: 
+    build:
       context: ./api-gateway
       dockerfile: Dockerfile
     ports:
@@ -11,6 +11,33 @@ services:
       - /usr/src/app/node_modules
     environment:
       NODE_ENV: development
+      UPLOAD_SERVICE_URL: http://upload-service:3000
+      METADATA_SERVICE_URL: http://metadata-service:3000
+      USER_SERVICE_URL: http://user-service:3000
+      STREAMING_SERVICE_URL: http://streaming-service:3000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_EXCHANGE: video.events
+      RABBITMQ_QUEUE: api.gateway.queue
+      RABBITMQ_DLQ: api.gateway.dlq
+      RABBITMQ_ROUTING_KEY: video.*
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      upload-db:
+        condition: service_healthy
+      metadata-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   upload-service:
     container_name: nest-upload-service
@@ -26,6 +53,13 @@ services:
       - ./upload-service/.env
     environment:
       NODE_ENV: development
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
     depends_on:
       upload-db:
         condition: service_healthy
@@ -33,7 +67,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-  
+
   metadata-service:
     container_name: nest-metadata-service
     build:
@@ -48,10 +82,19 @@ services:
       - ./metadata-service/.env
     environment:
       NODE_ENV: development
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
     depends_on:
       metadata-db:
         condition: service_healthy
-      
+      rabbitmq:
+        condition: service_healthy
+
   transcode-worker:
     container_name: nest-transcode-worker
     build:
@@ -62,6 +105,13 @@ services:
     volumes:
       - ./transcode-worker:/usr/src/app
       - /usr/src/app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3010/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
     depends_on:
       upload-db:
         condition: service_healthy
@@ -69,7 +119,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-  
+
   user-service:
     container_name: nest-user-service
     build:
@@ -82,10 +132,44 @@ services:
     volumes:
       - ./user-service:/usr/src/app
       - /usr/src/app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
     depends_on:
       auth-db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+
+  streaming-service:
+    container_name: nest-streaming-service
+    build:
+      context: ./streaming-service
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3000"
+    volumes:
+      - ./streaming-service:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - ./streaming-service/.env
+    environment:
+      NODE_ENV: development
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      metadata-service:
         condition: service_healthy
 
   auth-db:
@@ -199,10 +283,12 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - auth-db
-      - upload-db
-      - metadata-db
-
+      auth-db:
+        condition: service_healthy
+      upload-db:
+        condition: service_healthy
+      metadata-db:
+        condition: service_healthy
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MetadataModule } from './metadata/metadata.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -20,9 +21,12 @@ import { MetadataModule } from './metadata/metadata.module';
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
+        retryAttempts: 10,
+        retryDelay: 3000,
       }),
     }),
     MetadataModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

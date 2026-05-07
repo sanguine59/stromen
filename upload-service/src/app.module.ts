@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthController } from './health/health.controller';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
 import { buildTypeOrmOptions } from './database/typeorm.config';
@@ -34,7 +35,7 @@ const infraModules =
     JwtModule.register({}),
     ...infraModules,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
