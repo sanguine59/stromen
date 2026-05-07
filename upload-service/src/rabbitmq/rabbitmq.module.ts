@@ -23,6 +23,10 @@ import { RabbitMqService } from './rabbitmq.service';
             exchange: configService.getOrThrow<string>('rabbitmq.exchange'),
             exchangeType: 'topic',
             routingKey: configService.getOrThrow<string>('rabbitmq.routingKey'),
+            socketOptions: {
+              heartbeatIntervalInSeconds: 30,
+              reconnectTimeInSeconds: 5,
+            },
           },
         }),
       inject: [ConfigService],

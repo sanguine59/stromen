@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MetadataService } from './metadata.service';
 import { MetadataController } from './metadata.controller';
@@ -6,7 +7,7 @@ import { MetadataHttpController } from './metadata.http.controller';
 import { Metadata } from './entities/metadata.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Metadata])],
+  imports: [TypeOrmModule.forFeature([Metadata]), JwtModule.register({})],
   controllers: [MetadataController, MetadataHttpController],
   providers: [MetadataService],
 })

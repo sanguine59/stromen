@@ -16,6 +16,10 @@ async function bootstrap() {
         deadLetterRoutingKey: process.env.RABBITMQ_DLQ ?? 'api.gateway.dlq',
       },
       noAck: false,
+      socketOptions: {
+        heartbeatIntervalInSeconds: 30,
+        reconnectTimeInSeconds: 5,
+      },
       exchange: process.env.RABBITMQ_EXCHANGE ?? 'video.events',
       exchangeType: 'topic',
       routingKey: process.env.RABBITMQ_ROUTING_KEY ?? 'video.*',

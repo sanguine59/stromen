@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -19,10 +20,12 @@ import { AuthModule } from './auth/auth.module';
       database: process.env.DB_NAME || 'auth_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
+      retryAttempts: 10,
+      retryDelay: 3000,
     }),
     AuthModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

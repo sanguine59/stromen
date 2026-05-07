@@ -28,6 +28,12 @@ interface VideoFailedPayload {
 	occurredAt?: string;
 }
 
+interface VideoWatchedPayload {
+	uploadId: string;
+	viewerId: string;
+	occurredAt?: string;
+}
+
 @Injectable()
 export class MetadataService {
 	private readonly logger = new Logger(MetadataService.name);
@@ -161,6 +167,17 @@ export class MetadataService {
 
 		metadata.processingState = ProcessingState.FAILED;
 		await this.metadataRepository.save(metadata);
+	}
+
+	async handleVideoWatched(payload: VideoWatchedPayload): Promise<void> {
+		const result = await this.metadataRepository.increment(
+			{ uploadId: payload.uploadId },
+			'views',
+			1,
+		);
+		if (!result.affected) {
+			this.logger.warn(`video.watched for unknown uploadId ${payload.uploadId}`);
+		}
 	}
 
 	async setPublishState(id: string, isPublished: boolean): Promise<Metadata> {

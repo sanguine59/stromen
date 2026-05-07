@@ -1,5 +1,10 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
-import { MetadataProxyMiddleware, UploadsProxyMiddleware } from './proxy.middleware';
+import {
+  MetadataProxyMiddleware,
+  StreamingProxyMiddleware,
+  UploadsProxyMiddleware,
+  UserProxyMiddleware,
+} from './proxy.middleware';
 
 @Module({})
 export class ProxyModule implements NestModule {
@@ -13,6 +18,20 @@ export class ProxyModule implements NestModule {
       .forRoutes(
         { path: 'api/v1/metadata', method: RequestMethod.ALL },
         { path: 'api/v1/metadata/(.*)', method: RequestMethod.ALL },
+      );
+
+    consumer
+      .apply(UserProxyMiddleware)
+      .forRoutes(
+        { path: 'api/v1/auth', method: RequestMethod.ALL },
+        { path: 'api/v1/auth/(.*)', method: RequestMethod.ALL },
+      );
+
+    consumer
+      .apply(StreamingProxyMiddleware)
+      .forRoutes(
+        { path: 'api/v1/stream', method: RequestMethod.ALL },
+        { path: 'api/v1/stream/(.*)', method: RequestMethod.ALL },
       );
   }
 }
