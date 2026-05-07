@@ -15,6 +15,7 @@ services:
       METADATA_SERVICE_URL: http://metadata-service:3000
       USER_SERVICE_URL: http://user-service:3000
       STREAMING_SERVICE_URL: http://streaming-service:3000
+      CORS_ORIGIN: http://localhost:3005
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       RABBITMQ_EXCHANGE: video.events
       RABBITMQ_QUEUE: api.gateway.queue
@@ -272,6 +273,33 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  frontend:
+    container_name: stromen-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    environment:
+      NODE_ENV: development
+      API_BASE_URL: http://api-gateway:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_MINIO_PUBLIC_ENDPOINT: http://localhost:9000
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
 
   pgadmin:
     container_name: stromen-pgadmin

@@ -10,12 +10,14 @@ import { UpdateMetadataDto } from './dto/update-metadata.dto';
 export class MetadataHttpController {
   constructor(private readonly metadataService: MetadataService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createDraft(@Body() createMetadataDto: CreateMetadataDto) {
     const metadata = await this.metadataService.createDraft(createMetadataDto);
     return { id: metadata.id };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async updateMetadata(
     @Param('id') id: string,

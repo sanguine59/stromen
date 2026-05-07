@@ -17,7 +17,7 @@ export class Metadata {
     @Column({type: "varchar", length: 255})
     title!: string;
 
-    @Column({ type: 'text', nullable: true })
+    @Column({ type: 'text', nullable: true, default: '' })
     description!: string;
 
     @Column({ type: 'text', array: true, default: [] })

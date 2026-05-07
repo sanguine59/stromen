@@ -22,6 +22,7 @@ export class UploadsProxyMiddleware implements NestMiddleware {
   private readonly proxy = createProxyMiddleware({
     target: getRequiredEnv('UPLOAD_SERVICE_URL'),
     changeOrigin: true,
+    xfwd: true,
     on: {
       proxyReq: (proxyReq, req) => {
         forwardAuthHeader(proxyReq, req as Request);
@@ -39,6 +40,7 @@ export class MetadataProxyMiddleware implements NestMiddleware {
   private readonly proxy = createProxyMiddleware({
     target: getRequiredEnv('METADATA_SERVICE_URL'),
     changeOrigin: true,
+    xfwd: true,
     pathRewrite: { '^/api/v1/metadata': '/metadata' },
     on: {
       proxyReq: (proxyReq, req) => {
@@ -58,6 +60,7 @@ export class UserProxyMiddleware implements NestMiddleware {
   private readonly proxy = createProxyMiddleware({
     target: getRequiredEnv('USER_SERVICE_URL'),
     changeOrigin: true,
+    xfwd: true,
     pathRewrite: { '^/api/v1/auth': '/auth' },
     on: {
       proxyReq: (proxyReq, req) => {
@@ -77,6 +80,7 @@ export class StreamingProxyMiddleware implements NestMiddleware {
   private readonly proxy = createProxyMiddleware({
     target: getRequiredEnv('STREAMING_SERVICE_URL'),
     changeOrigin: true,
+    xfwd: true,
     pathRewrite: { '^/api/v1/stream': '/stream' },
     on: {
       proxyReq: (proxyReq, req) => {
